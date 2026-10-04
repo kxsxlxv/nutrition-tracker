@@ -1,14 +1,131 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#08111f"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Питание"><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css?v=3"><style>.auth-mark{width:52px;height:52px;border-radius:17px;display:grid;place-items:center;background:linear-gradient(135deg,#38bdf8,#2563eb);font-size:25px;font-weight:900;margin-bottom:16px}.google-btn{width:100%;padding:13px 16px;background:#fff;color:#111827;display:flex;align-items:center;justify-content:center;gap:10px}.google-g{font-size:18px;font-weight:900;color:#4285f4}.auth-note{margin-top:15px;color:#64748b;font-size:11px;line-height:1.45}.migration-banner{position:relative;z-index:18;width:min(612px,calc(100% - 28px));margin:12px auto -4px;background:#172033;border:1px solid #334155;border-radius:16px;padding:12px}.migration-banner.hidden{display:none}.migration-copy b,.migration-copy span{display:block}.migration-copy span{color:#94a3b8;font-size:11px;line-height:1.4;margin-top:3px}.migration-row{display:flex;gap:7px;margin-top:9px}.migration-row .input{flex:1}.migration-row .btn{padding:0 13px}.migration-dismiss{border:0;background:transparent;color:#64748b;font-size:11px;padding:7px 0 0}.account-card{display:flex;align-items:center;gap:10px;background:#091425;border:1px solid rgba(148,163,184,.12);border-radius:16px;padding:10px;margin-bottom:17px}.account-avatar{width:38px;height:38px;border-radius:12px;background:#1d4ed8;display:grid;place-items:center;font-weight:900}.account-main{min-width:0;flex:1}.account-main span{display:block;font-size:10px;color:#64748b}.account-main b{display:block;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.account-out{padding:8px 10px;background:#1e293b;font-size:11px}</style><title>Дневник питания</title></head><body>
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07101f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Питание">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css?v=5">
+  <title>Дневник питания</title>
+</head>
+<body>
+<svg class="svg-sprite" aria-hidden="true">
+  <symbol id="i-day" viewBox="0 0 24 24"><path d="M12 3.8a8.2 8.2 0 1 0 0 16.4 8.2 8.2 0 0 0 0-16.4Z"/><path d="M12 7.1v4.9l3.3 2"/></symbol>
+  <symbol id="i-stats" viewBox="0 0 24 24"><path d="M5 19V9.5M12 19V5M19 19v-6.5"/><path d="M3.5 19.5h17"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="15" rx="3"/><path d="M7.5 3v5M16.5 3v5M3.5 10h17"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M12 8.1a3.9 3.9 0 1 0 0 7.8 3.9 3.9 0 0 0 0-7.8Z"/><path d="M19.1 13.6c.1-.5.1-1.1 0-1.6l2-1.6-2-3.5-2.5 1a8.1 8.1 0 0 0-1.4-.8L14.8 4h-4l-.4 3.1a8 8 0 0 0-1.4.8l-2.5-1-2 3.5 2 1.6a7.8 7.8 0 0 0 0 1.6l-2 1.6 2 3.5 2.5-1a8 8 0 0 0 1.4.8l.4 3.1h4l.4-3.1a8.1 8.1 0 0 0 1.4-.8l2.5 1 2-3.5-2-1.6Z"/></symbol>
+  <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m14.5 5.5-6 6.5 6 6.5"/></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9.5 5.5 6 6.5-6 6.5"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></symbol>
+  <symbol id="i-bowl" viewBox="0 0 24 24"><path d="M4 10.5h16c0 5.1-3.6 8.5-8 8.5s-8-3.4-8-8.5Z"/><path d="M7 6.5c1.1.8 1.1 2 0 2.8M12 5c1.1.8 1.1 2 0 2.8M17 6.5c1.1.8 1.1 2 0 2.8"/></symbol>
+  <symbol id="i-sunrise" viewBox="0 0 24 24"><path d="M4 16h16M7.5 13a4.5 4.5 0 0 1 9 0M12 3v3M4.9 6l2.2 2.2M19.1 6l-2.2 2.2"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19 15.2A8 8 0 0 1 8.8 5a8 8 0 1 0 10.2 10.2Z"/></symbol>
+  <symbol id="i-snack" viewBox="0 0 24 24"><path d="M8 4.5h8l2 4-1.4 11h-9.2L6 8.5l2-4Z"/><path d="M7 8.5h10M10 4.5l.7 4M14 4.5l-.7 4"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="m5 16.5-.8 3.3 3.3-.8L18.8 7.7 16.3 5.2 5 16.5Z"/><path d="m14.8 6.7 2.5 2.5"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M9 7V4.5h6V7M7.5 7l.8 13h7.4l.8-13M10 10.5v6M14 10.5v6"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M10 5H5.5A2.5 2.5 0 0 0 3 7.5v9A2.5 2.5 0 0 0 5.5 19H10M14.5 8l4 4-4 4M8 12h10"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 1.4 4.6L18 8l-4.6 1.4L12 14l-1.4-4.6L6 8l4.6-1.4L12 2ZM18.5 14.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2ZM5 14l.8 2.2 2.2.8-2.2.8L5 20l-.8-2.2L2 17l2.2-.8L5 14Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5.5 12.5 4 4L18.5 7"/></symbol>
+</svg>
+
+<div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
 <div id="offline" class="offline">Нет соединения</div>
-<div id="gate" class="gate"><div class="gate-box"><div class="auth-mark">Н</div><h2>Дневник питания</h2><p>Войдите через Google. Сессия сохранится на этом устройстве, поэтому повторно входить при каждом открытии не потребуется.</p><button id="googleLogin" class="btn google-btn"><span class="google-g">G</span>Продолжить с Google</button><div id="gateError" class="error"></div><div class="auth-note">Доступ к дневнику привязан к аккаунту Supabase. Google-пароль приложению не передаётся.</div></div></div>
-<div id="migrationBanner" class="migration-banner hidden"><div class="migration-copy"><b>Перенести старый дневник</b><span>На этом устройстве не найден старый код. Введите его один раз, чтобы привязать прежние записи к Google-аккаунту.</span></div><div class="migration-row"><input id="legacyCode" class="input" type="password" placeholder="Старый код доступа"><button id="claimLegacyBtn" class="btn primary">Перенести</button></div><div id="migrationError" class="error"></div><button id="dismissMigration" class="migration-dismiss">Скрыть</button></div>
-<main class="app">
-<section id="dayView" class="view active"><div class="top"><div class="top-left"><h1 id="screenTitle">Сегодня</h1><button id="settingsBtn" class="icon-btn" aria-label="Цели и аккаунт">⚙</button></div><div class="date-controls"><button id="prev" class="icon-btn">‹</button><div id="dateLabel" class="date-label"></div><button id="next" class="icon-btn">›</button></div></div>
-<div class="hero"><div class="cal-line"><span id="eaten" class="big">—</span><span class="muted">/ <span id="target">—</span> ккал</span></div><div id="remaining" class="remain muted"></div><div class="progress"><div id="calBar"></div></div><div class="macros"><div class="macro"><b id="protein">—</b><div id="proteinGoal" class="goal-line">цель не задана</div><div class="mini-track"><div id="proteinBar" class="mini-fill"></div></div></div><div class="macro"><b id="fat">—</b><div id="fatGoal" class="goal-line">цель не задана</div><div class="mini-track"><div id="fatBar" class="mini-fill"></div></div></div><div class="macro"><b id="carbs">—</b><div id="carbsGoal" class="goal-line">цель не задана</div><div class="mini-track"><div id="carbsBar" class="mini-fill"></div></div></div></div></div><div id="meals"></div></section>
-<section id="statsView" class="view"><div class="stats-top"><div><div class="eyebrow">АНАЛИТИКА</div><h1>Статистика</h1></div><div class="range-toggle"><button data-days="7" class="range-btn active">7 дней</button><button data-days="30" class="range-btn">30 дней</button></div></div><div id="statsSummary" class="stat-grid"></div><div class="stats-card"><div class="stats-card-head"><h2>Калории по дням</h2><span id="statsPeriod" class="muted"></span></div><div id="dailyChart" class="daily-chart"></div></div><div class="stats-card"><div class="stats-card-head"><h2>По приёмам пищи</h2></div><div id="mealDistribution"></div></div><div class="stats-card"><div class="stats-card-head"><h2>Средние БЖУ</h2></div><div id="macroStats" class="stat-macros"></div></div></section>
-</main>
-<nav class="bottom-nav"><button id="dayTab" class="nav-btn active"><span>◉</span><b>День</b></button><button id="statsTab" class="nav-btn"><span>▥</span><b>Статистика</b></button></nav>
-<div id="addSheet" class="sheet"><div class="panel"><div class="handle"></div><div id="sectionChip" class="section-chip">Обед</div><h3>Добавить еду</h3><div id="quickBlock"><div class="quick-label">Недавние</div><div id="recentFoods" class="quick-row"></div><div class="quick-label">Часто ем</div><div id="frequentFoods" class="quick-row"></div></div><div class="suggest-wrap"><input id="foodQuery" class="input" autocomplete="off" placeholder="Начните вводить название…"><div id="suggestions" class="suggestions"></div></div><div id="portionHint" class="portion-hint"></div><div class="grid nutrients"><label><span>Ккал</span><input id="kcalInput" class="input" type="number" inputmode="decimal"></label><label><span>Граммы</span><input id="gramsInput" class="input" type="number" inputmode="decimal"></label><label><span>Белки</span><input id="proteinInput" class="input" type="number" inputmode="decimal"></label><label><span>Жиры</span><input id="fatInput" class="input" type="number" inputmode="decimal"></label><label class="full"><span>Углеводы</span><input id="carbsInput" class="input" type="number" inputmode="decimal"></label></div><div id="addError" class="error"></div><div class="actions"><button id="cancelAdd" class="btn secondary">Отмена</button><button id="saveAdd" class="btn primary">Добавить</button></div></div></div>
-<div id="editSheet" class="sheet"><div class="panel"><div class="handle"></div><h3>Изменить запись</h3><label class="field-label">Приём пищи<select id="editMeal" class="input"><option value="breakfast">Завтрак</option><option value="lunch">Обед</option><option value="dinner">Ужин</option><option value="snack">Перекус</option></select></label><label class="field-label">Название<input id="editName" class="input"></label><div id="editPortionHint" class="portion-hint"></div><div class="grid nutrients"><label><span>Ккал</span><input id="editKcal" class="input" type="number" inputmode="decimal"></label><label><span>Граммы</span><input id="editGrams" class="input" type="number" inputmode="decimal"></label><label><span>Белки</span><input id="editProtein" class="input" type="number" inputmode="decimal"></label><label><span>Жиры</span><input id="editFat" class="input" type="number" inputmode="decimal"></label><label class="full"><span>Углеводы</span><input id="editCarbs" class="input" type="number" inputmode="decimal"></label></div><div id="editError" class="error"></div><div class="actions"><button id="deleteEntry" class="btn danger">Удалить</button><button id="saveEdit" class="btn primary">Сохранить</button></div><button id="cancelEdit" class="btn link-btn">Отмена</button></div></div>
-<div id="settingsSheet" class="sheet"><div class="panel"><div class="handle"></div><div class="account-card"><div id="accountAvatar" class="account-avatar">U</div><div class="account-main"><span>Аккаунт</span><b id="accountEmail">—</b></div><button id="signOutBtn" class="btn account-out">Выйти</button></div><h3>Дневные цели</h3><p class="panel-copy">Цели начнут действовать с выбранной даты и сохранятся для следующих дней, пока вы их не измените.</p><label class="field-label">Калории<input id="goalKcal" class="input" type="number" inputmode="decimal" placeholder="2000"></label><div class="settings-grid"><label><span>Белки, г</span><input id="goalProtein" class="input" type="number" inputmode="decimal" placeholder="не задано"></label><label><span>Жиры, г</span><input id="goalFat" class="input" type="number" inputmode="decimal" placeholder="не задано"></label><label class="full"><span>Углеводы, г</span><input id="goalCarbs" class="input" type="number" inputmode="decimal" placeholder="не задано"></label></div><div id="settingsError" class="error"></div><div class="actions"><button id="cancelSettings" class="btn secondary">Отмена</button><button id="saveSettings" class="btn primary">Сохранить</button></div></div></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./app.js?v=4"></script><script>if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}</script></body></html>
+
+<div id="gate" class="gate">
+  <div class="auth-card">
+    <div class="auth-mark"><svg><use href="#i-spark"/></svg></div>
+    <div class="auth-kicker">NUTRITION FLOW</div>
+    <h1>Питание без лишнего шума</h1>
+    <p>Личный дневник с калориями, БЖУ, статистикой и календарём.</p>
+    <button id="googleBtn" class="google-btn"><span class="google-g">G</span><span>Продолжить с Google</span></button>
+    <div id="gateError" class="error"></div>
+  </div>
+</div>
+
+<div id="migrationBanner" class="migration-banner hidden">
+  <div><b>Найден старый дневник</b><span>Перенеси прежние записи в этот аккаунт один раз.</span></div>
+  <div class="migration-row"><input id="migrationCode" class="input" type="password" placeholder="Старый код доступа"><button id="migrationBtn" class="mini-action">Перенести</button></div>
+  <div id="migrationError" class="error"></div>
+</div>
+
+<div class="app-shell">
+  <header class="app-bar">
+    <div class="brand-lockup"><div class="brand-orb"><svg><use href="#i-spark"/></svg></div><div><span>NUTRITION</span><b id="pageTitle">Сегодня</b></div></div>
+    <button id="accountBtn" class="account-btn" aria-label="Аккаунт"><span id="accountAvatar">U</span></button>
+  </header>
+
+  <main class="page-stack">
+    <section id="dayView" class="view active">
+      <div class="day-toolbar">
+        <button id="prev" class="shape-btn" aria-label="Предыдущий день"><svg><use href="#i-chevron-left"/></svg></button>
+        <button id="dateJump" class="date-pill"><span id="dateLabel">—</span><small id="weekdayLabel">—</small></button>
+        <button id="next" class="shape-btn" aria-label="Следующий день"><svg><use href="#i-chevron-right"/></svg></button>
+        <button id="settingsBtn" class="shape-btn accent" aria-label="Цели"><svg><use href="#i-target"/></svg></button>
+      </div>
+
+      <article class="energy-card">
+        <div class="energy-main">
+          <div id="energyRing" class="energy-ring"><div class="energy-ring-core"><strong id="eaten">0</strong><span>ккал</span></div></div>
+          <div class="energy-copy"><span class="eyebrow">ЭНЕРГИЯ</span><h2 id="remaining">Осталось —</h2><p><span id="target">2000</span> ккал · дневная цель</p></div>
+        </div>
+        <div class="macro-row">
+          <div class="macro-chip protein"><div><b>Б</b><strong id="protein">0 г</strong></div><span id="proteinGoal">цель не задана</span><i><em id="proteinBar"></em></i></div>
+          <div class="macro-chip fat"><div><b>Ж</b><strong id="fat">0 г</strong></div><span id="fatGoal">цель не задана</span><i><em id="fatBar"></em></i></div>
+          <div class="macro-chip carbs"><div><b>У</b><strong id="carbs">0 г</strong></div><span id="carbsGoal">цель не задана</span><i><em id="carbsBar"></em></i></div>
+        </div>
+      </article>
+
+      <div id="mealDock" class="meal-dock"></div>
+      <article class="meal-stage">
+        <div class="meal-stage-head"><div><span id="activeMealKicker" class="eyebrow">ПРИЁМ ПИЩИ</span><h2 id="activeMealTitle">Обед</h2></div><div class="meal-stage-total"><strong id="activeMealCalories">0</strong><span>ккал</span></div></div>
+        <div id="mealItems" class="meal-items"></div>
+        <button id="stageAdd" class="stage-add"><svg><use href="#i-plus"/></svg><span>Добавить</span></button>
+      </article>
+    </section>
+
+    <section id="statsView" class="view">
+      <div class="section-headline"><div><span class="eyebrow">АНАЛИТИКА</span><h1>Ритм питания</h1></div><div class="segmented" id="statsRange"><button data-days="7" class="active">7 дн.</button><button data-days="30">30 дн.</button></div></div>
+      <div id="statsMetrics" class="metric-grid"></div>
+      <article class="chart-card"><div class="chart-head"><div><span class="eyebrow">КАЛОРИИ</span><h2 id="chartTitle">Последние 7 дней</h2></div><div id="trendBadge" class="trend-badge">—</div></div><div id="trendChart" class="trend-chart"></div></article>
+      <div class="stats-lower">
+        <article class="distribution-card"><div id="mealDonut" class="donut"><div><strong id="donutValue">0%</strong><span>обед</span></div></div><div id="mealLegend" class="meal-legend"></div></article>
+        <article id="macroSummary" class="macro-summary"></article>
+      </div>
+    </section>
+
+    <section id="calendarView" class="view">
+      <div class="section-headline calendar-head"><div><span class="eyebrow">ИСТОРИЯ</span><h1 id="monthTitle">Октябрь</h1></div><div class="month-nav"><button id="monthPrev" class="shape-btn"><svg><use href="#i-chevron-left"/></svg></button><button id="monthNext" class="shape-btn"><svg><use href="#i-chevron-right"/></svg></button></div></div>
+      <article class="calendar-card"><div class="week-row"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div><div id="calendarGrid" class="calendar-grid"></div></article>
+      <div class="calendar-legend"><span><i class="dot none"></i>нет данных</span><span><i class="dot good"></i>в цели</span><span><i class="dot near"></i>рядом</span><span><i class="dot over"></i>выше</span></div>
+      <article id="monthSummary" class="month-summary"></article>
+    </section>
+  </main>
+
+  <nav class="nav-bar">
+    <button id="dayTab" class="nav-item active" data-view="day"><span class="nav-icon"><svg><use href="#i-day"/></svg></span><b>День</b></button>
+    <button id="statsTab" class="nav-item" data-view="stats"><span class="nav-icon"><svg><use href="#i-stats"/></svg></span><b>Статистика</b></button>
+    <button id="calendarTab" class="nav-item" data-view="calendar"><span class="nav-icon"><svg><use href="#i-calendar"/></svg></span><b>Календарь</b></button>
+  </nav>
+</div>
+
+<div id="addSheet" class="sheet"><div class="panel"><div class="sheet-handle"></div><div class="sheet-title-row"><div><span id="sectionChip" class="section-chip">Обед</span><h3>Добавить еду</h3></div><svg class="sheet-icon"><use href="#i-bowl"/></svg></div><div class="quick-label">Недавние</div><div id="recentFoods" class="quick-row"></div><div class="quick-label">Часто ем</div><div id="frequentFoods" class="quick-row"></div><div class="search-field"><svg><use href="#i-search"/></svg><input id="foodQuery" autocomplete="off" placeholder="Название продукта или блюда"><div id="suggestions" class="suggestions"></div></div><div id="portionHint" class="portion-hint"></div><div class="form-grid"><label><span>Ккал</span><input id="kcalInput" class="input" type="number" inputmode="decimal"></label><label><span>Граммы</span><input id="gramsInput" class="input" type="number" inputmode="decimal"></label><label><span>Белки</span><input id="proteinInput" class="input" type="number" inputmode="decimal"></label><label><span>Жиры</span><input id="fatInput" class="input" type="number" inputmode="decimal"></label><label class="wide"><span>Углеводы</span><input id="carbsInput" class="input" type="number" inputmode="decimal"></label></div><div id="addError" class="error"></div><div class="sheet-actions"><button id="cancelAdd" class="btn secondary">Отмена</button><button id="saveAdd" class="btn primary">Добавить</button></div></div></div>
+
+<div id="editSheet" class="sheet"><div class="panel"><div class="sheet-handle"></div><div class="sheet-title-row"><div><span class="section-chip">ЗАПИСЬ</span><h3>Изменить</h3></div><svg class="sheet-icon"><use href="#i-edit"/></svg></div><label class="field">Приём пищи<select id="editMeal" class="input"><option value="breakfast">Завтрак</option><option value="lunch">Обед</option><option value="dinner">Ужин</option><option value="snack">Перекус</option></select></label><label class="field">Название<input id="editName" class="input"></label><div id="editPortionHint" class="portion-hint"></div><div class="form-grid"><label><span>Ккал</span><input id="editKcal" class="input" type="number" inputmode="decimal"></label><label><span>Граммы</span><input id="editGrams" class="input" type="number" inputmode="decimal"></label><label><span>Белки</span><input id="editProtein" class="input" type="number" inputmode="decimal"></label><label><span>Жиры</span><input id="editFat" class="input" type="number" inputmode="decimal"></label><label class="wide"><span>Углеводы</span><input id="editCarbs" class="input" type="number" inputmode="decimal"></label></div><div id="editError" class="error"></div><div class="sheet-actions"><button id="deleteEntry" class="btn danger"><svg><use href="#i-trash"/></svg>Удалить</button><button id="saveEdit" class="btn primary">Сохранить</button></div><button id="cancelEdit" class="text-btn">Закрыть</button></div></div>
+
+<div id="settingsSheet" class="sheet"><div class="panel compact-panel"><div class="sheet-handle"></div><div class="sheet-title-row"><div><span class="section-chip">ЦЕЛИ</span><h3>Дневной ориентир</h3></div><svg class="sheet-icon"><use href="#i-target"/></svg></div><p class="panel-copy">Цели действуют с выбранной даты, пока ты не изменишь их снова.</p><label class="field">Калории<input id="goalKcal" class="input" type="number" inputmode="decimal" placeholder="2000"></label><div class="form-grid"><label><span>Белки, г</span><input id="goalProtein" class="input" type="number" inputmode="decimal"></label><label><span>Жиры, г</span><input id="goalFat" class="input" type="number" inputmode="decimal"></label><label class="wide"><span>Углеводы, г</span><input id="goalCarbs" class="input" type="number" inputmode="decimal"></label></div><div id="settingsError" class="error"></div><div class="sheet-actions"><button id="cancelSettings" class="btn secondary">Отмена</button><button id="saveSettings" class="btn primary">Сохранить</button></div></div></div>
+
+<div id="accountSheet" class="sheet"><div class="panel account-panel"><div class="sheet-handle"></div><div class="account-hero"><div class="account-avatar-lg" id="accountAvatarLarge">U</div><div><span class="eyebrow">АККАУНТ</span><h3 id="accountEmail">—</h3></div></div><button id="accountGoals" class="menu-row"><svg><use href="#i-target"/></svg><div><b>Дневные цели</b><span>Калории и БЖУ</span></div><svg class="chev"><use href="#i-chevron-right"/></svg></button><button id="signOutBtn" class="menu-row danger-row"><svg><use href="#i-logout"/></svg><div><b>Выйти</b><span>Сессия на этом устройстве</span></div></button><button id="closeAccount" class="text-btn">Закрыть</button></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./app.js?v=5"></script>
+<script>if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=5').catch(()=>{}))}</script>
+</body>
+</html>
