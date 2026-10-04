@@ -1,68 +1,163 @@
 (()=>{
-const SUPABASE_URL='https://qfhemprjxezfbrcgdcpg.supabase.co';
-const PUBLISHABLE_KEY='sb_publishable_3r67DSZYlKfMYVqGbAyaQA_ylTxr2y0';
-const API=SUPABASE_URL+'/functions/v1/nutrition-app';
-const APP_URL='https://kxsxlxv.github.io/nutrition-tracker/';
-const $=id=>document.getElementById(id);
-const labels={breakfast:'Завтрак',lunch:'Обед',dinner:'Ужин',snack:'Перекус'};
-const mealIcons={breakfast:'sunrise',lunch:'sun',dinner:'moon',snack:'snack'};
-const sb=window.supabase.createClient(SUPABASE_URL,PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-let session=null,current=today(),activeMeal='lunch',selected=null,timer=null,dayData=null,quickCache=null,addBase=null,editBase=null,editItem=null,statsDays=7,currentView='day',calendarMonth=current.slice(0,7),starting=false;
-function svg(name,cls=''){return `<svg${cls?` class="${cls}"`:''}><use href="#i-${name}"></use></svg>`}
-function today(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Moscow',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())}
-function parseLocal(s){return new Date(`${s}T12:00:00+03:00`)}
-function fmt(s){return new Intl.DateTimeFormat('ru-RU',{timeZone:'Europe/Moscow',day:'numeric',month:'long'}).format(parseLocal(s))}
-function weekday(s){return new Intl.DateTimeFormat('ru-RU',{timeZone:'Europe/Moscow',weekday:'short'}).format(parseLocal(s)).replace('.','')}
-function monthName(m){return new Intl.DateTimeFormat('ru-RU',{month:'long',year:'numeric'}).format(new Date(`${m}-15T12:00:00+03:00`)).replace(/^./,c=>c.toUpperCase())}
-function shortDate(s){return new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short'}).format(parseLocal(s)).replace('.','')}
-function n(v){return Number(v||0)}function r(v){return Math.round(v*10)/10}
+const originalFetch=window.fetch.bind(window);
+let statsDaily=[];
+let selectedDate='';
+let chartTimer=null;
+try{localStorage.removeItem('nutrition_access_key')}catch{}
+
+function urlOf(input){try{return typeof input==='string'?input:input?.url||String(input)}catch{return''}}
+function later(fn){requestAnimationFrame(()=>requestAnimationFrame(fn))}
+
+window.fetch=async(...args)=>{
+  const response=await originalFetch(...args);
+  const url=urlOf(args[0]);
+  try{
+    if(url.includes('api=day&date=')){
+      const u=new URL(url,location.href);
+      selectedDate=u.searchParams.get('date')||selectedDate;
+      later(enhanceCalendar);
+    }
+    if(url.includes('api=stats')){
+      response.clone().json().then(data=>{
+        if(Array.isArray(data?.daily)){
+          statsDaily=data.daily;
+          clearTimeout(chartTimer);
+          chartTimer=setTimeout(enhanceTrendChart,20);
+        }
+      }).catch(()=>{});
+    }
+  }catch{}
+  return response;
+};
+
+function svgIcon(name){return `<span class="nav-icon"><svg><use href="#i-${name}"></use></svg></span>`}
+
+function installSettingsNav(){
+  const nav=document.querySelector('.nav-bar');
+  if(!nav||document.getElementById('v51SettingsTab'))return;
+  const indicator=document.createElement('span');
+  indicator.className='nav-indicator';
+  nav.prepend(indicator);
+  const btn=document.createElement('button');
+  btn.id='v51SettingsTab';
+  btn.className='nav-item nav-settings';
+  btn.type='button';
+  btn.innerHTML=`${svgIcon('settings')}<b>Настройки</b>`;
+  btn.addEventListener('click',()=>document.getElementById('settingsBtn')?.click());
+  nav.append(btn);
+  const update=()=>{
+    const active=nav.querySelector('.nav-item.active');
+    if(!active)return;
+    indicator.style.width=`${active.offsetWidth}px`;
+    indicator.style.transform=`translate3d(${active.offsetLeft}px,0,0)`;
+  };
+  new MutationObserver(update).observe(nav,{subtree:true,attributes:true,attributeFilter:['class']});
+  nav.addEventListener('click',()=>later(update));
+  window.addEventListener('resize',update,{passive:true});
+  later(update);
+}
+
+function enhanceCalendar(){
+  const grid=document.getElementById('calendarGrid');
+  if(!grid)return;
+  grid.querySelectorAll('.cal-day.selected').forEach(x=>x.classList.remove('selected'));
+  if(!selectedDate)return;
+  const match=[...grid.querySelectorAll('[data-date]')].find(x=>x.dataset.date===selectedDate);
+  if(match)match.classList.add('selected');
+}
+
+function yFor(value,max,h,pad){return h-pad-(Number(value||0)/max)*(h-2*pad)}
+function fmtDate(s){try{return new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short'}).format(new Date(`${s}T12:00:00`)).replace('.','')}catch{return s}}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-function nullable(id){const v=$(id).value.trim();return v===''?null:Number(v)}
-function sum(rows,key){return rows.reduce((a,x)=>a+n(x[key]),0)}
-function showGate(msg=''){$('gate').classList.remove('hidden');$('gateError').textContent=msg}
-function hideGate(){$('gate').classList.add('hidden');$('gateError').textContent=''}
-function setAccount(){const email=session?.user?.email||'';const initial=(email[0]||'U').toUpperCase();$('accountAvatar').textContent=initial;$('accountAvatarLarge').textContent=initial;$('accountEmail').textContent=email}
-function openSheet(id){$(id).classList.add('open')}
-function closeSheet(id){$(id).classList.remove('open')}
-function animateNumber(el,to,duration=420){const from=Number(el.dataset.value||0),start=performance.now();el.dataset.value=to;const step=t=>{const p=Math.min(1,(t-start)/duration),e=1-Math.pow(1-p,3);el.textContent=Math.round(from+(to-from)*e);if(p<1)requestAnimationFrame(step)};requestAnimationFrame(step)}
-async function api(q,opt={}){if(!session?.access_token)throw new Error('Нужно войти в аккаунт');const h=new Headers(opt.headers||{});h.set('authorization','Bearer '+session.access_token);if(opt.body)h.set('content-type','application/json');let res;try{res=await fetch(API+q,{...opt,headers:h})}catch{throw new Error('Нет связи с API')}let data={};try{data=await res.json()}catch{}if(res.status===401){const refreshed=await sb.auth.refreshSession();session=refreshed.data.session||null;if(!session){showGate('Сессия истекла. Войди снова.');throw new Error('Сессия истекла')}return api(q,opt)}if(!res.ok)throw new Error(data.error||`Ошибка сервера (${res.status})`);return data}
-async function signInGoogle(){$('gateError').textContent='';const {error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:APP_URL}});if(error)$('gateError').textContent=error.message}
-async function signOut(){await sb.auth.signOut();session=null;dayData=null;quickCache=null;closeSheet('accountSheet');showGate()}
-async function claimLegacy(code){if(!code)return false;try{await api('?api=claim',{method:'POST',headers:{'x-nutrition-migration-key':code},body:'{}'});localStorage.removeItem('nutrition_access_key');$('migrationBanner').classList.add('hidden');return true}catch(e){$('migrationError').textContent=e.message;return false}}
-async function maybeClaimLegacy(){const code=localStorage.getItem('nutrition_access_key')||'';if(code){const ok=await claimLegacy(code);if(ok)return}try{const st=await api('?api=stats&days=7&end='+encodeURIComponent(current));const count=(st.daily||[]).reduce((a,x)=>a+n(x.entries),0);if(count===0&&localStorage.getItem('nutrition_access_key'))$('migrationBanner').classList.remove('hidden')}catch{}}
-async function initAuth(){const {data}=await sb.auth.getSession();session=data.session||null;sb.auth.onAuthStateChange((_e,s)=>{session=s;setTimeout(()=>session?afterAuth():showGate(),0)});if(session)await afterAuth();else showGate()}
-async function afterAuth(){if(starting||!session)return;starting=true;try{hideGate();setAccount();await maybeClaimLegacy();await loadDay()}finally{starting=false}}
-function macro(v,g,valId,goalId,barId){$(valId).textContent=r(v)+' г';if(g!=null&&Number(g)>0){const p=v/Number(g)*100;$(goalId).textContent=`${Math.round(p)}% · ${r(Number(g))} г`;$(barId).style.width=Math.min(100,p)+'%'}else{$(goalId).textContent='цель не задана';$(barId).style.width='0'}}
-function ringColour(p){if(p>110)return'var(--red)';if(p>95)return'var(--amber)';if(p>75)return'var(--mint)';return'var(--blue)'}
-async function loadDay(){if(!session)return;$('dateLabel').textContent=fmt(current);$('weekdayLabel').textContent=weekday(current);$('pageTitle').textContent=current===today()?'Сегодня':'День';const d=await api('?api=day&date='+encodeURIComponent(current));dayData=d;renderDay(d)}
-function renderDay(d){const rows=d.meals||[],g=d.target||{},target=Number(g.calorie_intake_target||2000),e=sum(rows,'calories'),p=sum(rows,'protein_g'),f=sum(rows,'fat_g'),c=sum(rows,'carbs_g'),pct=target?e/target*100:0;animateNumber($('eaten'),e);$('target').textContent=Math.round(target);$('remaining').textContent=e<=target?`Осталось ${Math.round(target-e)} ккал`:`Выше цели на ${Math.round(e-target)} ккал`;$('energyRing').style.setProperty('--p',Math.min(100,pct));$('energyRing').style.setProperty('--ring',ringColour(pct));macro(p,g.protein_target_g,'protein','proteinGoal','proteinBar');macro(f,g.fat_target_g,'fat','fatGoal','fatBar');macro(c,g.carbs_target_g,'carbs','carbsGoal','carbsBar');renderMealDock(rows);renderMealStage(rows)}
-function renderMealDock(rows){$('mealDock').innerHTML=['breakfast','lunch','dinner','snack'].map(t=>{const kcal=sum(rows.filter(x=>x.meal_type===t),'calories');return `<button class="meal-tab ${t===activeMeal?'active':''}" data-meal="${t}">${svg(mealIcons[t])}<span>${labels[t]}</span><small hidden>${Math.round(kcal)}</small></button>`}).join('');document.querySelectorAll('.meal-tab').forEach(b=>b.onclick=()=>{activeMeal=b.dataset.meal;renderMealDock(rows);renderMealStage(rows)})}
-function renderMealStage(rows){const arr=rows.filter(x=>x.meal_type===activeMeal),total=sum(arr,'calories');$('activeMealTitle').textContent=labels[activeMeal];$('activeMealCalories').textContent=Math.round(total);$('mealItems').innerHTML=arr.length?arr.map((x,i)=>`<button class="meal-item" data-edit="${x.id}" style="animation-delay:${Math.min(i*45,180)}ms"><div><strong>${esc(x.description)}</strong><small>${x.grams?r(n(x.grams))+' г · ':''}Б ${x.protein_g==null?'—':r(n(x.protein_g))} · Ж ${x.fat_g==null?'—':r(n(x.fat_g))} · У ${x.carbs_g==null?'—':r(n(x.carbs_g))}</small></div><span class="kcal">${Math.round(n(x.calories))}</span>${svg('edit')}</button>`).join(''):`<div class="meal-empty">${svg(mealIcons[activeMeal])}<span>Здесь пока пусто</span></div>`;document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{const x=rows.find(v=>v.id===b.dataset.edit);if(x)openEdit(x)})}
-function shiftDay(k){const d=parseLocal(current);d.setDate(d.getDate()+k);current=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Moscow',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);calendarMonth=current.slice(0,7);loadDay()}
-function baseFrom(x,gramsKey='grams',kcalKey='calories',pKey='protein_g',fKey='fat_g',cKey='carbs_g'){const grams=Number(x[gramsKey]);if(!Number.isFinite(grams)||grams<=0)return null;return{grams,kcal:n(x[kcalKey]),p:x[pKey]==null?null:n(x[pKey]),f:x[fKey]==null?null:n(x[fKey]),c:x[cKey]==null?null:n(x[cKey])}}
-function scale(base,grams,ids,hintId){if(!base||!Number.isFinite(grams)||grams<=0)return;const k=grams/base.grams;$(ids.kcal).value=r(base.kcal*k);$(ids.p).value=base.p==null?'':r(base.p*k);$(ids.f).value=base.f==null?'':r(base.f*k);$(ids.c).value=base.c==null?'':r(base.c*k);$(hintId).textContent=`Пересчитано из ${r(base.grams)} г`}
-function clearAdd(){selected=null;addBase=null;['foodQuery','kcalInput','gramsInput','proteinInput','fatInput','carbsInput'].forEach(id=>$(id).value='');$('suggestions').innerHTML='';$('suggestions').classList.remove('open');$('addError').textContent='';$('portionHint').textContent=''}
-async function openAdd(type=activeMeal){activeMeal=type;clearAdd();$('sectionChip').textContent=labels[type].toUpperCase();openSheet('addSheet');renderQuick();if(!quickCache){try{quickCache=await api('?api=quick');renderQuick()}catch{}}setTimeout(()=>$('foodQuery').focus(),180)}
-function renderQuick(){const draw=(id,rows,frequent=false)=>{$(id).innerHTML=rows?.length?rows.map((x,i)=>`<button class="quick-food" data-q="${id}-${i}"><b>${esc(x.description)}</b><span>${Math.round(n(x.calories))} ккал${frequent?' · '+x.count+'×':''}</span></button>`).join(''):'<span class="muted-note">Появятся после записей</span>';$(id).querySelectorAll('[data-q]').forEach((b,i)=>b.onclick=()=>chooseQuick(rows[i]))};draw('recentFoods',quickCache?.recent||[]);draw('frequentFoods',quickCache?.frequent||[],true)}
-function chooseQuick(x){selected=x.catalog_id?{id:x.catalog_id}:null;$('foodQuery').value=x.description;$('kcalInput').value=x.calories??'';$('gramsInput').value=x.grams??'';$('proteinInput').value=x.protein_g??'';$('fatInput').value=x.fat_g??'';$('carbsInput').value=x.carbs_g??'';addBase=baseFrom(x);$('portionHint').textContent=addBase?`Базовая порция ${r(addBase.grams)} г`:''}
-async function searchFood(){const q=$('foodQuery').value.trim();if(q.length<2){$('suggestions').classList.remove('open');return}try{const rows=await api('?api=search&q='+encodeURIComponent(q)),box=$('suggestions');if(!rows.length){box.classList.remove('open');box.innerHTML='';return}box.innerHTML=rows.map((x,i)=>`<button class="suggestion" data-i="${i}"><div><div class="s-name">${esc(x.canonical_name)}</div><div class="s-brand">${esc(x.brand||'')}</div></div><div class="s-kcal">${Math.round(n(x.calories_kcal))} ккал</div></button>`).join('');box.classList.add('open');box.querySelectorAll('[data-i]').forEach((b,i)=>b.onclick=()=>choose(rows[i]))}catch(e){$('addError').textContent=e.message}}
-function choose(x){selected=x;$('foodQuery').value=x.canonical_name+(x.brand?' — '+x.brand:'');$('kcalInput').value=x.calories_kcal??'';$('gramsInput').value=x.serving_weight_g??'';$('proteinInput').value=x.protein_g??'';$('fatInput').value=x.fat_g??'';$('carbsInput').value=x.carbs_g??'';addBase=baseFrom(x,'serving_weight_g','calories_kcal');$('portionHint').textContent=addBase?`Стандартная порция ${r(addBase.grams)} г`:x.serving_volume_ml?`Стандартный объём ${r(n(x.serving_volume_ml))} мл`:'';$('suggestions').classList.remove('open')}
-async function saveFood(){const desc=$('foodQuery').value.trim(),kcal=Number($('kcalInput').value);if(!desc||!Number.isFinite(kcal)){$('addError').textContent='Выбери продукт или заполни название и калории';return}try{$('saveAdd').disabled=true;await api('?api=add',{method:'POST',body:JSON.stringify({date:current,meal_type:activeMeal,catalog_id:selected?selected.id:null,description:desc,grams:nullable('gramsInput'),calories:kcal,protein_g:nullable('proteinInput'),fat_g:nullable('fatInput'),carbs_g:nullable('carbsInput')})});quickCache=null;closeSheet('addSheet');await loadDay()}catch(e){$('addError').textContent=e.message}finally{$('saveAdd').disabled=false}}
-function openEdit(x){editItem=x;editBase=baseFrom(x);$('editMeal').value=x.meal_type;$('editName').value=x.description;$('editKcal').value=x.calories??'';$('editGrams').value=x.grams??'';$('editProtein').value=x.protein_g??'';$('editFat').value=x.fat_g??'';$('editCarbs').value=x.carbs_g??'';$('editError').textContent='';$('editPortionHint').textContent=editBase?`Исходная порция ${r(editBase.grams)} г`:'';openSheet('editSheet')}
-async function saveEdit(){if(!editItem)return;const kcal=Number($('editKcal').value),description=$('editName').value.trim();if(!description||!Number.isFinite(kcal)){$('editError').textContent='Нужны название и калории';return}try{await api('?api=edit',{method:'POST',body:JSON.stringify({id:editItem.id,meal_type:$('editMeal').value,description,grams:nullable('editGrams'),calories:kcal,protein_g:nullable('editProtein'),fat_g:nullable('editFat'),carbs_g:nullable('editCarbs')})});activeMeal=$('editMeal').value;quickCache=null;closeSheet('editSheet');await loadDay()}catch(e){$('editError').textContent=e.message}}
-async function deleteEntry(){if(!editItem||!confirm(`Удалить «${editItem.description}»?`))return;try{await api('?api=delete',{method:'POST',body:JSON.stringify({id:editItem.id})});quickCache=null;closeSheet('editSheet');await loadDay()}catch(e){$('editError').textContent=e.message}}
-async function openGoals(){const g=(dayData?.target)||{};$('goalKcal').value=g.calorie_intake_target??2000;$('goalProtein').value=g.protein_target_g??'';$('goalFat').value=g.fat_target_g??'';$('goalCarbs').value=g.carbs_target_g??'';$('settingsError').textContent='';openSheet('settingsSheet')}
-async function saveGoals(){const kcal=Number($('goalKcal').value);if(!Number.isFinite(kcal)||kcal<=0){$('settingsError').textContent='Укажи цель по калориям';return}try{await api('?api=goals',{method:'POST',body:JSON.stringify({date:current,calorie_intake_target:kcal,protein_target_g:nullable('goalProtein'),fat_target_g:nullable('goalFat'),carbs_target_g:nullable('goalCarbs')})});closeSheet('settingsSheet');await loadDay()}catch(e){$('settingsError').textContent=e.message}}
-function switchView(v){const go=()=>{currentView=v;document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id===v+'View'));document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===v));$('pageTitle').textContent=v==='day'?(current===today()?'Сегодня':'День'):v==='stats'?'Статистика':'Календарь';if(v==='stats')loadStats();if(v==='calendar')loadCalendar()};if(document.startViewTransition)document.startViewTransition(go);else go()}
-async function loadStats(){try{const d=await api(`?api=stats&days=${statsDays}&end=${encodeURIComponent(current)}`);renderStats(d)}catch(e){console.error(e)}}
-function renderStats(d){const daily=d.daily||[],logged=daily.filter(x=>x.entries>0),den=logged.length||1,avg=sum(logged,'calories')/den,targetAvg=logged.reduce((a,x)=>a+n(x.target),0)/den,hit=logged.filter(x=>x.target&&x.calories>=x.target*.9&&x.calories<=x.target*1.05).length,totalEntries=logged.reduce((a,x)=>a+n(x.entries),0);$('statsMetrics').innerHTML=[['Среднее',`${Math.round(avg)} ккал`],['Дней',`${logged.length}/${daily.length}`],['В цели',`${hit}`],['Записей',`${totalEntries}`]].map(([a,b])=>`<div class="metric"><span>${a}</span><strong>${b}</strong></div>`).join('');const diff=targetAvg?Math.round((avg-targetAvg)/targetAvg*100):0;$('trendBadge').textContent=diff===0?'по цели':`${diff>0?'+':''}${diff}% к цели`;$('chartTitle').textContent=`${shortDate(daily[0]?.date||current)} — ${shortDate(daily[daily.length-1]?.date||current)}`;renderTrendChart(daily);renderDistribution(d,logged,den)}
-function renderTrendChart(daily){if(!daily.length){$('trendChart').innerHTML='';return}const w=600,h=170,pad=14,max=Math.max(1,...daily.map(x=>Math.max(n(x.calories),n(x.target)))),pts=daily.map((x,i)=>({x:pad+i*(w-2*pad)/Math.max(1,daily.length-1),y:h-pad-(n(x.calories)/max)*(h-2*pad),v:n(x.calories),date:x.date,target:n(x.target)}));const line=pts.map((p,i)=>`${i?'L':'M'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '),area=`${line} L${pts[pts.length-1].x},${h-pad} L${pts[0].x},${h-pad} Z`;const labelsSvg=pts.map((p,i)=>{if(daily.length>10&&i%5!==0&&i!==daily.length-1)return'';return `<text class="chart-label" x="${p.x}" y="${h-1}" text-anchor="middle">${new Date(p.date+'T12:00:00').getDate()}</text>`}).join('');const dots=daily.length<=10?pts.map(p=>`<circle class="chart-dot" cx="${p.x}" cy="${p.y}" r="3.5"><title>${shortDate(p.date)} · ${Math.round(p.v)} ккал</title></circle>`).join(''):'';$('trendChart').innerHTML=`<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><defs><linearGradient id="lineGradient"><stop stop-color="#67d4ff"/><stop offset="1" stop-color="#9e8cff"/></linearGradient><linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#67d4ff" stop-opacity=".28"/><stop offset="1" stop-color="#67d4ff" stop-opacity="0"/></linearGradient></defs><g class="chart-grid"><line x1="14" x2="586" y1="42" y2="42"/><line x1="14" x2="586" y1="84" y2="84"/><line x1="14" x2="586" y1="126" y2="126"/></g><path class="chart-area" d="${area}"/><path class="chart-line" d="${line}"/>${dots}${labelsSvg}</svg>`}
-function renderDistribution(d,logged,den){const mt=d.meal_totals||{},total=Object.values(mt).reduce((a,v)=>a+n(v),0)||1,types=['breakfast','lunch','dinner','snack'],vals=types.map(t=>n(mt[t])/total*100),cum=[];vals.reduce((a,v,i)=>cum[i]=a+v,a=0);$('mealDonut').style.setProperty('--a',`${cum[0]}%`);$('mealDonut').style.setProperty('--b',`${cum[1]}%`);$('mealDonut').style.setProperty('--c',`${cum[2]}%`);const maxI=vals.indexOf(Math.max(...vals));$('donutValue').textContent=Math.round(vals[maxI]||0)+'%';$('donutValue').nextElementSibling.textContent=labels[types[maxI]].toLowerCase();const colours=['var(--blue)','var(--violet)','var(--mint)','var(--amber)'];$('mealLegend').innerHTML=types.map((t,i)=>`<div class="legend-row"><i style="background:${colours[i]}"></i><span>${labels[t]}</span><b>${Math.round(vals[i])}%</b></div>`).join('');const ap=sum(logged,'protein_g')/den,af=sum(logged,'fat_g')/den,ac=sum(logged,'carbs_g')/den;$('macroSummary').innerHTML=[['Белки',ap],['Жиры',af],['Углеводы',ac]].map(([k,v])=>`<div class="macro-stat"><span>${k}</span><strong>${r(v)} г</strong></div>`).join('')}
-function daysInMonth(m){const [y,mo]=m.split('-').map(Number);return new Date(y,mo,0).getDate()}
-function lastDay(m){return `${m}-${String(daysInMonth(m)).padStart(2,'0')}`}
-async function loadCalendar(){try{const count=daysInMonth(calendarMonth),end=lastDay(calendarMonth);let daily=[];if(count<=30){daily=(await api(`?api=stats&days=${count}&end=${end}`)).daily||[]}else{const part=(await api(`?api=stats&days=30&end=${end}`)).daily||[],first=`${calendarMonth}-01`,d=await api(`?api=day&date=${first}`),target=Number(d.target?.calorie_intake_target||2000),rows=d.meals||[];daily=[{date:first,calories:sum(rows,'calories'),protein_g:sum(rows,'protein_g'),fat_g:sum(rows,'fat_g'),carbs_g:sum(rows,'carbs_g'),entries:rows.length,target},...part]}renderCalendar(daily)}catch(e){console.error(e)}}
-function renderCalendar(daily){$('monthTitle').textContent=monthName(calendarMonth);const firstWeek=(new Date(`${calendarMonth}-01T12:00:00`).getDay()+6)%7,map=new Map(daily.map(x=>[x.date,x])),cells=[];for(let i=0;i<firstWeek;i++)cells.push('<button class="cal-day blank"></button>');for(let day=1;day<=daysInMonth(calendarMonth);day++){const date=`${calendarMonth}-${String(day).padStart(2,'0')}`,x=map.get(date),ratio=x?.target?n(x.calories)/n(x.target):0,cls=!x||!x.entries?'':ratio<=1.02&&ratio>=.82?'good':ratio>1.1?'over':'near';cells.push(`<button class="cal-day ${cls} ${date===today()?'today':''}" data-date="${date}"><strong>${day}</strong><small>${x?.entries?Math.round(n(x.calories))+' ккал':''}</small></button>`)}$('calendarGrid').innerHTML=cells.join('');document.querySelectorAll('[data-date]').forEach(b=>b.onclick=()=>{current=b.dataset.date;activeMeal='lunch';switchView('day');loadDay()});const logged=daily.filter(x=>x.entries>0),avg=logged.length?sum(logged,'calories')/logged.length:0,inGoal=logged.filter(x=>x.target&&x.calories>=x.target*.9&&x.calories<=x.target*1.05).length,over=logged.filter(x=>x.target&&x.calories>x.target*1.05).length;$('monthSummary').innerHTML=[['Среднее',`${Math.round(avg)} ккал`],['В цели',`${inGoal} дн.`],['Выше',`${over} дн.`]].map(([a,b])=>`<div class="month-metric"><span>${a}</span><strong>${b}</strong></div>`).join('')}
-function shiftMonth(k){const [y,m]=calendarMonth.split('-').map(Number),d=new Date(y,m-1+k,15);calendarMonth=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;loadCalendar()}
-function bind(){$('googleBtn').onclick=signInGoogle;$('prev').onclick=()=>shiftDay(-1);$('next').onclick=()=>shiftDay(1);$('dateJump').onclick=()=>{calendarMonth=current.slice(0,7);switchView('calendar')};$('settingsBtn').onclick=openGoals;$('stageAdd').onclick=()=>openAdd(activeMeal);document.querySelectorAll('.nav-item').forEach(b=>b.onclick=()=>switchView(b.dataset.view));document.querySelectorAll('#statsRange button').forEach(b=>b.onclick=()=>{statsDays=Number(b.dataset.days);document.querySelectorAll('#statsRange button').forEach(x=>x.classList.toggle('active',x===b));loadStats()});$('monthPrev').onclick=()=>shiftMonth(-1);$('monthNext').onclick=()=>shiftMonth(1);$('accountBtn').onclick=()=>openSheet('accountSheet');$('closeAccount').onclick=()=>closeSheet('accountSheet');$('signOutBtn').onclick=signOut;$('accountGoals').onclick=()=>{closeSheet('accountSheet');openGoals()};$('cancelAdd').onclick=()=>closeSheet('addSheet');$('saveAdd').onclick=saveFood;$('saveEdit').onclick=saveEdit;$('deleteEntry').onclick=deleteEntry;$('cancelEdit').onclick=()=>closeSheet('editSheet');$('cancelSettings').onclick=()=>closeSheet('settingsSheet');$('saveSettings').onclick=saveGoals;$('foodQuery').addEventListener('input',()=>{selected=null;addBase=null;$('portionHint').textContent='';clearTimeout(timer);timer=setTimeout(searchFood,180)});$('gramsInput').addEventListener('input',()=>scale(addBase,Number($('gramsInput').value),{kcal:'kcalInput',p:'proteinInput',f:'fatInput',c:'carbsInput'},'portionHint'));$('editGrams').addEventListener('input',()=>scale(editBase,Number($('editGrams').value),{kcal:'editKcal',p:'editProtein',f:'editFat',c:'editCarbs'},'editPortionHint'));$('migrationBtn').onclick=()=>claimLegacy($('migrationCode').value.trim());['addSheet','editSheet','settingsSheet','accountSheet'].forEach(id=>$(id).addEventListener('click',e=>{if(e.target===$(id))closeSheet(id)}));window.addEventListener('online',()=>{$('offline').style.display='none';if(session)loadDay()});window.addEventListener('offline',()=>{$('offline').style.display='block'});if(!navigator.onLine)$('offline').style.display='block'}
-bind();initAuth();
+
+function enhanceTrendChart(){
+  const host=document.getElementById('trendChart');
+  if(!host||!statsDaily.length)return;
+  const signature=statsDaily.map(x=>`${x.date}:${x.entries||0}:${Math.round(Number(x.calories||0))}:${Math.round(Number(x.target||0))}`).join('|');
+  if(host.dataset.v51Signature===signature&&host.querySelector('.v51-chart'))return;
+  host.dataset.v51Signature=signature;
+
+  const daily=statsDaily;
+  const w=600,h=160,pad=16;
+  const maxRaw=Math.max(1,...daily.map(x=>Math.max(Number(x.calories||0),Number(x.target||0))));
+  const max=maxRaw*1.08;
+  const dx=(w-2*pad)/Math.max(1,daily.length-1);
+  const pts=daily.map((x,i)=>({
+    x:pad+i*dx,
+    y:yFor(x.calories,max,h,pad),
+    targetY:yFor(x.target,max,h,pad),
+    value:Number(x.calories||0),
+    target:Number(x.target||0),
+    entries:Number(x.entries||0),
+    date:x.date
+  }));
+  const targetValues=daily.map(x=>Number(x.target||0)).filter(v=>v>0);
+  const avgTarget=targetValues.length?targetValues.reduce((a,b)=>a+b,0)/targetValues.length:0;
+  const bandTop=avgTarget?yFor(avgTarget*1.05,max,h,pad):0;
+  const bandBottom=avgTarget?yFor(avgTarget*.9,max,h,pad):0;
+  const targetPath=pts.filter(p=>p.target>0).map((p,i)=>`${i?'L':'M'}${p.x.toFixed(1)},${p.targetY.toFixed(1)}`).join(' ');
+
+  const segments=[];
+  let current=[];
+  pts.forEach(p=>{
+    if(p.entries>0)current.push(p);
+    else if(current.length){segments.push(current);current=[]}
+  });
+  if(current.length)segments.push(current);
+  const lines=segments.filter(s=>s.length>1).map(s=>`<path class="v51-data-line" d="${s.map((p,i)=>`${i?'L':'M'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}"/>`).join('');
+  const dots=pts.filter(p=>p.entries>0).map((p,i)=>`<circle class="v51-data-dot" cx="${p.x}" cy="${p.y}" r="3.7" style="animation-delay:${Math.min(i*28,220)}ms"/>`).join('');
+  const zeros=pts.filter(p=>p.entries===0).map(p=>`<line class="v51-zero" x1="${p.x}" x2="${p.x}" y1="${h-pad-4}" y2="${h-pad}"/>`).join('');
+  const labels=pts.map((p,i)=>{
+    if(daily.length>10&&i%5!==0&&i!==daily.length-1)return'';
+    const day=new Date(`${p.date}T12:00:00`).getDate();
+    return `<text class="v51-label" x="${p.x}" y="${h-1}" text-anchor="middle">${day}</text>`;
+  }).join('');
+  const hits=pts.map((p,i)=>`<circle class="v51-hit" data-i="${i}" cx="${p.x}" cy="${p.entries?p.y:h-pad-2}" r="13"/>`).join('');
+  const band=avgTarget?`<rect class="v51-goal-band" x="${pad}" y="${bandTop}" width="${w-pad*2}" height="${Math.max(2,bandBottom-bandTop)}" rx="5"/>`:'';
+
+  host.innerHTML=`<svg class="v51-chart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-label="График калорий"><defs><linearGradient id="v51LineGradient"><stop stop-color="#67d4ff"/><stop offset="1" stop-color="#9e8cff"/></linearGradient></defs><g class="chart-grid"><line x1="${pad}" x2="${w-pad}" y1="42" y2="42"/><line x1="${pad}" x2="${w-pad}" y1="82" y2="82"/><line x1="${pad}" x2="${w-pad}" y1="122" y2="122"/></g>${band}${targetPath?`<path class="v51-target-line" d="${targetPath}"/>`:''}${zeros}${lines}${dots}${labels}<g>${hits}</g></svg><div class="chart-tooltip" role="status"></div>`;
+
+  const tip=host.querySelector('.chart-tooltip');
+  const show=(index,e)=>{
+    const p=pts[index];
+    if(!p||!tip)return;
+    tip.innerHTML=p.entries?`<b>${esc(fmtDate(p.date))} · ${Math.round(p.value)} ккал</b><span>Цель ${Math.round(p.target||avgTarget||0)} ккал</span>`:`<b>${esc(fmtDate(p.date))}</b><span>Нет записей</span>`;
+    const rect=host.getBoundingClientRect();
+    const clientX=e?.clientX??(rect.left+rect.width*(p.x/w));
+    const x=Math.max(62,Math.min(rect.width-62,clientX-rect.left));
+    const y=Math.max(42,rect.height*(p.entries?p.y:(h-pad))/h);
+    tip.style.left=`${x}px`;
+    tip.style.top=`${y}px`;
+    tip.classList.add('show');
+  };
+  host.querySelectorAll('.v51-hit').forEach(hit=>{
+    const i=Number(hit.dataset.i);
+    hit.addEventListener('pointerenter',e=>show(i,e));
+    hit.addEventListener('pointermove',e=>show(i,e));
+    hit.addEventListener('pointerdown',e=>show(i,e));
+    hit.addEventListener('pointerleave',()=>tip?.classList.remove('show'));
+  });
+}
+
+function initPolish(){
+  installSettingsNav();
+  const migration=document.getElementById('migrationBanner');
+  if(migration)migration.remove();
+  const calendar=document.getElementById('calendarGrid');
+  if(calendar)new MutationObserver(()=>later(enhanceCalendar)).observe(calendar,{childList:true});
+  const trend=document.getElementById('trendChart');
+  if(trend)new MutationObserver(()=>{
+    if(!trend.querySelector('.v51-chart')){
+      clearTimeout(chartTimer);
+      chartTimer=setTimeout(enhanceTrendChart,12);
+    }
+  }).observe(trend,{childList:true});
+  later(()=>{enhanceCalendar();enhanceTrendChart()});
+}
+
+const legacy=document.createElement('script');
+legacy.src='./app-v5.js?v=5';
+legacy.onload=initPolish;
+legacy.onerror=()=>console.error('Не удалось загрузить базовый v5 runtime');
+document.body.appendChild(legacy);
 })();
