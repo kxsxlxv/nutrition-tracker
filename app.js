@@ -12,7 +12,7 @@ window.fetch=async(...args)=>{
   const response=await originalFetch(...args);
   const url=urlOf(args[0]);
   try{
-    if(url.includes('api=day&date=')){
+    if(url.includes('api=day&date=')&&document.getElementById('dayView')?.classList.contains('active')){
       const u=new URL(url,location.href);
       selectedDate=u.searchParams.get('date')||selectedDate;
       later(enhanceCalendar);
@@ -37,11 +37,13 @@ function installSettingsNav(){
   if(!nav||document.getElementById('v51SettingsTab'))return;
   const indicator=document.createElement('span');
   indicator.className='nav-indicator';
+  indicator.style.left='0px';
   nav.prepend(indicator);
   const btn=document.createElement('button');
   btn.id='v51SettingsTab';
   btn.className='nav-item nav-settings';
   btn.type='button';
+  btn.setAttribute('aria-label','Настройки и цели');
   btn.innerHTML=`${svgIcon('settings')}<b>Настройки</b>`;
   btn.addEventListener('click',()=>document.getElementById('settingsBtn')?.click());
   nav.append(btn);
