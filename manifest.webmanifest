@@ -1,0 +1,19 @@
+{
+  "name": "Дневник питания",
+  "short_name": "Питание",
+  "description": "Персональный дневник питания",
+  "start_url": "/nutrition-tracker/",
+  "scope": "/nutrition-tracker/",
+  "display": "standalone",
+  "background_color": "#06101d",
+  "theme_color": "#08111f",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
